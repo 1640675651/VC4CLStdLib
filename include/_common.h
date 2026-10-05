@@ -24,7 +24,8 @@
  */
 
 SIMPLE_3(float, clamp, float, x, float, minval, float, maxval, fmin(fmax(x, minval), maxval))
-//TODO version with limits as scalar
+// gentype clamp(gentype x, float minval, float maxval)
+SIMPLE_3_TWO_SCALAR(float, clamp, float, x, float, minval, float, maxval, fmin(fmax(x, (arg0_t) minval), (arg0_t) maxval))
 
 // NOTE: using 0x1.ca5dc2p+5 (= 180/M_PI_F + 1 ULP) is slightly more accurate than using 0x1.ca5dcp+5 (180 / M_PI_F),
 // but both are accurate enough for 2 ULP maximum error
