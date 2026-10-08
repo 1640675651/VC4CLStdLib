@@ -88,13 +88,23 @@
 			return vc4cl_set_event(event); \
 		}
 
+/*
+ * The strided copies are split between the work-items of the work-group: work-item i (local linear ID) copies the
+ * elements i, i + work-group size, ... Copying all elements in every work-item would take 192 times as long for the
+ * largest work-groups (since their work-items run one after the other on 12 QPUs).
+ */
+#define ASYNC_WORK_ITEM_INDEX \
+		(get_local_id(0) + get_local_size(0) * (get_local_id(1) + get_local_size(1) * get_local_id(2)))
+#define ASYNC_WORK_GROUP_SIZE \
+		(get_local_size(0) * get_local_size(1) * get_local_size(2))
+
 #define ASYNC_STRIDED_SOURCE_COPY_INTERNAL \
-		for (size_t i = 0; i < num_elements; ++i) \
+		for (size_t i = ASYNC_WORK_ITEM_INDEX; i < num_elements; i += ASYNC_WORK_GROUP_SIZE) \
 		dst[i] = src[i * src_stride];
 //TODO better way, e.g. via vc4cl_dma_copy and stride-parameter?
 
 #define ASYNC_STRIDED_DEST_COPY_INTERNAL \
-		for (size_t i = 0; i < num_elements; ++i) \
+		for (size_t i = ASYNC_WORK_ITEM_INDEX; i < num_elements; i += ASYNC_WORK_GROUP_SIZE) \
 		dst[i * dst_stride] = src[i];
 
 #define ASYNC_STRIDED_COPY(type) \
@@ -239,6 +249,8 @@ PREFETCH(float)
 #undef ASYNC_STRIDED_SOURCE_COPY_INTERNAL
 #undef ASYNC_STRIDED_DEST_COPY_INTERNAL
 #undef ASYNC_STRIDED_COPY
+#undef ASYNC_WORK_ITEM_INDEX
+#undef ASYNC_WORK_GROUP_SIZE
 #undef PREFETCH
 
 #endif /* VC4CL_ASYNC_H */
